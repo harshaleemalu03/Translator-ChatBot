@@ -1,5 +1,12 @@
 {
+  "name": "translator-chatbot",
+  "version": "1.0.0",
+  "description": "A translation chatbot using Gemini API",
+  "main": "server.js",
   "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
@@ -7,5 +14,3 @@
     "express": "^5.1.0"
   }
 }
-
-
