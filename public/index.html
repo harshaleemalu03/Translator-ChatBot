@@ -327,8 +327,6 @@
             starfield: document.getElementById('starfield'),
         };
 
-        // --- Setup ---
-        // Starfield Background
         function createStarfield() {
             for (let i = 0; i < 150; i++) {
                 const star = document.createElement('div');
@@ -350,13 +348,11 @@
             document.head.appendChild(styleSheet);
         }
 
-        // --- Initial Welcome Message ---
         function displayWelcomeMessage() {
             const welcomeText = "Welcome to Cosmic Translate! ✨<br>I can translate languages from across the galaxy. Just tell me what to translate. For example: <strong>Translate 'The universe is beautiful' to Japanese.</strong>";
             addMessage(welcomeText, 'bot', { useTypewriter: true });
         }
 
-        // --- Event Listeners ---
         elements.chatForm.addEventListener('submit', handleSendMessage);
         document.addEventListener('DOMContentLoaded', () => {
             createStarfield();
@@ -383,24 +379,21 @@
                     body: JSON.stringify({ prompt: userText })
                 });
 
-                // Remove thinking indicator once response is received
                 const thinkingMessage = document.getElementById(thinkingMessageId);
                 if (thinkingMessage) thinkingMessage.remove();
 
                 if (!response.ok) {
-                    throw new Error(`Server error: ${response.statusText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Server error: ${response.statusText}`);
                 }
 
                 const data = await response.json();
                 
-                // Handle both successful translations and specific errors from the backend
                 if (data.translated) {
                     addMessage(data.translated, 'bot', { hasCopy: true, useTypewriter: true });
                 } else if (data.error) {
-                    // This will display refusals like "I only translate" or API key errors
                     addMessage(data.error, 'bot', { isError: true, useTypewriter: true });
                 } else {
-                    // Fallback for unexpected response structure
                     addMessage("Sorry, I received an unexpected response. Please try again.", 'bot', { isError: true });
                 }
 
@@ -408,7 +401,7 @@
                 console.error("Translation Fetch Error:", error);
                 const thinkingMessage = document.getElementById(thinkingMessageId);
                 if (thinkingMessage) thinkingMessage.remove();
-                addMessage("Connection error. Could not reach the translation service. Please check your network and try again.", 'bot', { isError: true });
+                addMessage(error.message, 'bot', { isError: true });
             } finally {
                 elements.sendBtn.disabled = false;
                 elements.userInput.focus();
@@ -423,7 +416,6 @@
             if (isError) messageElement.classList.add('error');
             if (id) messageElement.id = id;
 
-            // Add icon based on sender
             const icon = document.createElement('div');
             icon.className = 'icon';
             if (sender === 'bot') {
@@ -434,11 +426,12 @@
             messageElement.appendChild(icon);
 
             const textContainer = document.createElement('div');
+            textContainer.className = 'message-content';
 
-            if (sender === 'bot' && useTypewriter && !id) { // Apply typewriter to final bot messages
+            if (sender === 'bot' && useTypewriter && !id) {
                 typewriterEffect(text, textContainer);
             } else {
-                textContainer.innerHTML = text; // Use innerHTML to render strong tags, etc.
+                textContainer.innerHTML = text;
             }
             messageElement.appendChild(textContainer);
             
@@ -448,7 +441,6 @@
                 copyBtn.title = 'Copy Translation';
                 copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
                 copyBtn.addEventListener('click', () => {
-                    // To copy text that might contain HTML, we create a temporary element
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = text;
                     navigator.clipboard.writeText(tempDiv.textContent || tempDiv.innerText);
@@ -468,52 +460,12 @@
         }
 
         function typewriterEffect(htmlText, container) {
-            // Create a temporary div to parse the HTML and extract text and structure
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlText;
-
-            let charIndex = 0;
-            const allNodes = Array.from(tempDiv.childNodes);
-
-            function typeNode(node) {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    const text = node.textContent;
-                    text.split('').forEach((char) => {
-                        const span = document.createElement('span');
-                        span.textContent = char;
-                        span.className = 'typewriter-char';
-                        span.style.animationDelay = `${charIndex * 0.02}s`;
-                        container.appendChild(span);
-                        charIndex++;
-                    });
-                } else if (node.nodeType === Node.ELEMENT_NODE) {
-                    const newElement = document.createElement(node.nodeName);
-                    // Copy attributes if any
-                    for (let i = 0; i < node.attributes.length; i++) {
-                        newElement.setAttribute(node.attributes[i].name, node.attributes[i].value);
-                    }
-                    container.appendChild(newElement);
-                    Array.from(node.childNodes).forEach(childNode => {
-                        // Recursively call on a temporary container for the new element
-                        const subContainer = newElement;
-                        // This simplified version just appends nodes. A more complex one would be needed for deep nesting.
-                        if (childNode.nodeType === Node.TEXT_NODE) {
-                           typewriterEffect(childNode.textContent, subContainer);
-                        } else {
-                           subContainer.appendChild(childNode.cloneNode(true));
-                        }
-                    });
-                }
-            }
-
-            // A simplified typewriter that handles basic HTML like <strong> and <br>
             container.innerHTML = '';
+            let charIndex = 0;
             htmlText.split(/(<[^>]*>)/g).forEach(part => {
                 if (part.startsWith('<')) {
-                    // It's a tag, just append it
                     container.innerHTML += part;
                 } else {
-                    // It's text, apply typewriter
                     part.split('').forEach((char, index) => {
                         const span = document.createElement('span');
                         span.textContent = char;
@@ -527,4 +479,5 @@
         }
     </script>
 </body>
+
 </html>
