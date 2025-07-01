@@ -212,7 +212,6 @@
         // ######################################################################
         // #  IMPORTANT: PASTE YOUR GOOGLE AI API KEY IN THE LINE BELOW         #
         // ######################################################################
-        const API_KEY = "AIzaSyC6ebA_B4zbmJsMjcKiteWUHlEkIU-1SeE";
 
         const elements = {
             messageList: document.getElementById('message-list'),
@@ -275,8 +274,14 @@
             addMessage(`<div class="thinking-indicator"><span></span><span></span><span></span></div>`, 'bot', { id: thinkingMessageId });
 
             try {
-                const result = await model.generateContent(userText);
-                const translatedText = result.response.text();
+                const response = await fetch("/translate", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt: userText })
+});
+const data = await response.json();
+const translatedText = data.translated;
+
 
                 // Replace thinking indicator with the actual response
                 const thinkingMessage = document.getElementById(thinkingMessageId);
