@@ -2,45 +2,35 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Setup __dirname
+// Setup __dirname in ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load env variables
+// Load env
 dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3000;
 const apiKey = process.env.API_KEY;
 
 if (!apiKey) {
-  console.error("❌ API_KEY not found in .env");
+  console.error("❌ Missing API_KEY in .env file");
   process.exit(1);
 }
 
-// Setup Express
-const app = express();
-const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// POST /translate
 app.post('/translate', async (req, res) => {
   const { prompt } = req.body;
-  if (!prompt || prompt.trim() === "") {
+
+  if (!prompt || prompt.trim() === '') {
     return res.status(400).json({ translated: "Prompt is empty." });
-  }
-
-  // Check if translation intent is present
-  const isTranslationRequest = /(translate\s.+\sto\s\w+)|(.+\sto\s\w+)|(.+\sin\s\w+)/i.test(prompt);
-
-  if (!isTranslationRequest) {
-    return res.json({
-      translated:
-        "I am a translation-only assistant. Please provide text and the target language for translation."
-    });
   }
 
   try {
@@ -50,35 +40,33 @@ app.post('/translate', async (req, res) => {
     const result = await model.generateContent({
       contents: [
         {
-          role: "system",
+          role: "user",
           parts: [
             {
-              text: `You are an intelligent and strictly rule-bound translator chatbot whose sole function is to accurately translate user-provided text from one language to another, as clearly specified in the user's message. Your response must ONLY be the translated text — no extra explanations or comments. If user gives anything other than a translation request, say: "I am a translation-only assistant. Please provide text and the target language for translation."`
+              text: `You are a translation-only assistant. Only translate if the user provides something like "hello to French", "translate I am fine in Spanish", or "I am a boy in Hindi". Otherwise, say: "I am a translation-only assistant. Please provide text and the target language for translation."
+
+Prompt: ${prompt}`
             }
           ]
-        },
-        {
-          role: "user",
-          parts: [{ text: prompt }]
         }
       ]
     });
 
     const response = await result.response;
-    const text = response.text().trim();
-    res.json({ translated: text });
+    const text = await response.text();
+    res.json({ translated: text.trim() });
+
   } catch (error) {
-    console.error("❌ API ERROR:", error);
-    res.status(500).json({ translated: "Translation failed. Please try again later." });
+    console.error("❌ Translation failed:", error.message);
+    res.status(500).json({ translated: "Server error: Internal Server Error" });
   }
 });
 
-// Fallback for frontend
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
 app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`✅ Server running at http://localhost:${port}`);
 });
