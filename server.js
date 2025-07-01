@@ -5,18 +5,18 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.static("public")); // serve static files from 'public' folder
-
-// 🛠 Required to resolve __dirname in ES modules
+// For __dirname support in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Route for root "/"
+// Serve static files from "public"
+app.use(express.static(path.join(__dirname, "public")));
+app.use(cors());
+
+// If user visits "/", send the main HTML
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -24,3 +24,4 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
+
