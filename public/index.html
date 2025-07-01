@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cosmic Translate | A Visual Translation Experience</title>
+    <title>Cosmic Translate | A Conversational Translation Experience</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,9 @@
             --text-color: #EAEAEA;
             --text-light: #B6EADA;
             --text-heading: #C4B0FF;
-            --shadow-color: rgba(0, 0, 0, 0.5);
+            --user-message-bg: #301E67;
+            --bot-message-bg: rgba(19, 17, 41, 0.7);
+            --error-color: #f85149;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -58,168 +60,150 @@
             to { transform: rotate(360deg) scale(1.5); }
         }
 
-        .main-container {
+        .chat-container {
             width: 100%;
-            max-width: 1100px;
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 20px;
-            align-items: stretch;
+            max-width: 800px;
+            height: 85vh;
+            max-height: 900px;
+            display: flex;
+            flex-direction: column;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 0 25px var(--glow-color), inset 0 0 10px rgba(48, 30, 103, 0.5);
             animation: fadeIn 1s ease-out;
+            overflow: hidden; /* Important for containing children */
         }
         
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-        .panel {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 25px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+        #message-list {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 15px var(--glow-color), inset 0 0 10px rgba(48, 30, 103, 0.5);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .panel:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 30px var(--glow-color), inset 0 0 15px rgba(48, 30, 103, 0.8);
+            gap: 15px;
         }
 
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            color: var(--text-heading);
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.2rem;
+        /* Custom scrollbar for message list */
+        #message-list::-webkit-scrollbar { width: 6px; }
+        #message-list::-webkit-scrollbar-track { background: transparent; }
+        #message-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        #message-list::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+
+        .chat-message {
+            max-width: 75%;
+            padding: 12px 18px;
+            border-radius: 12px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            animation: popIn 0.3s ease-out;
         }
-        .panel-header i { margin-right: 10px; }
-        .copy-btn { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 1.1rem; padding: 5px; transition: color 0.2s; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+        .user-message {
+            background-color: var(--user-message-bg);
+            color: var(--text-light);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message {
+            background-color: var(--bot-message-bg);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            position: relative;
+        }
+        .bot-message.error { color: var(--error-color); }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px; right: 8px;
+            background: none; border: none;
+            color: var(--text-light);
+            cursor: pointer; font-size: 0.9rem;
+            opacity: 0.4;
+            transition: opacity 0.2s, color 0.2s;
+        }
+        .bot-message:hover .copy-btn { opacity: 1; }
         .copy-btn:hover { color: white; }
+        .copy-btn.copied { color: #4CAF50; }
 
-        .textarea-container { position: relative; flex-grow: 1; }
-        
-        #inputText, #outputText {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: transparent; border: none;
-            color: var(--text-color); font-size: 1rem;
-            resize: none; padding: 10px;
+        #chat-form {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
         }
-        #inputText:focus { outline: none; }
-        #inputText::placeholder { color: rgba(234, 234, 234, 0.5); }
-        #outputText { pointer-events: none; }
 
-        .dissolve-char {
-            display: inline-block;
-            opacity: 1;
-            transition: opacity 0.5s, transform 0.5s;
+        #userInput {
+            flex-grow: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
-        .dissolve-char.dissolving {
-            opacity: 0;
-            transform: translate(var(--x), var(--y)) rotate(var(--r));
+        #userInput:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px var(--accent-color);
         }
+        #userInput::placeholder { color: rgba(234, 234, 234, 0.5); }
+
+        #sendBtn {
+            flex-shrink: 0;
+            width: 50px;
+            border-radius: 8px;
+            border: 1px solid var(--accent-color);
+            background: var(--glow-color);
+            color: white; font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex; justify-content: center; align-items: center;
+        }
+        #sendBtn:hover:not(:disabled) { background: var(--accent-color); box-shadow: 0 0 15px var(--accent-color); }
+        #sendBtn:disabled { cursor: not-allowed; background: #222; box-shadow: none; color: #555; border-color: #555; }
 
         .typewriter-char {
             opacity: 0;
-            animation: char-fade-in 0.1s forwards;
+            animation: char-fade-in 0.05s forwards;
         }
         @keyframes char-fade-in { to { opacity: 1; } }
 
-        .control-tower {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-        }
-
-        #translateBtn {
-            width: 80px; height: 80px;
+        .thinking-indicator span {
+            display: inline-block;
+            width: 8px; height: 8px;
             border-radius: 50%;
-            border: 2px solid var(--accent-color);
-            background: radial-gradient(circle, var(--glow-color) 0%, var(--bg-color) 70%);
-            box-shadow: 0 0 20px var(--accent-color), inset 0 0 10px var(--accent-color);
-            cursor: pointer;
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-size: 2rem;
-            transition: all 0.3s ease;
-            animation: pulse-button 3s infinite;
+            background: var(--text-light);
+            margin: 0 2px;
+            animation: thinking-bounce 1.4s infinite ease-in-out both;
         }
-        @keyframes pulse-button { 0%, 100% { transform: scale(1); box-shadow: 0 0 20px var(--accent-color), inset 0 0 10px var(--accent-color); } 50% { transform: scale(1.05); box-shadow: 0 0 30px var(--accent-color), inset 0 0 15px var(--accent-color); } }
-        #translateBtn:hover:not(:disabled) { transform: scale(1.1) !important; animation-play-state: paused; }
-        #translateBtn:disabled { cursor: not-allowed; background: #222; box-shadow: none; animation: none; color: #555; border-color: #555; }
-        
-        #targetLanguage {
-            font-family: 'Poppins', sans-serif;
-            background: var(--panel-bg); color: var(--text-light);
-            border: 1px solid var(--border-color); border-radius: 8px;
-            padding: 8px 12px; font-size: 0.9rem; cursor: pointer;
-            -webkit-appearance: none; -moz-appearance: none; appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B6EADA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 10px center;
-            background-size: 1em; padding-right: 2.5em;
-        }
-        
-        #stardust-stream {
-            position: absolute;
-            width: 5px; height: 100%;
-            background: linear-gradient(transparent, var(--accent-color), transparent);
-            left: 50%; top: 0;
-            transform: translateX(-50%) scaleY(0);
-            opacity: 0;
-            z-index: 10;
-        }
-        #stardust-stream.animate {
-            animation: stream-flow 0.6s 0.2s ease-out;
-        }
-        @keyframes stream-flow {
-            0% { transform: translateX(-50%) scaleY(0); opacity: 1; }
-            50% { transform: translateX(-50%) scaleY(1); opacity: 1; }
-            100% { transform: translateX(-50%) scaleY(1); opacity: 0; }
-        }
-
-        @media (max-width: 900px) {
-            .main-container { grid-template-columns: 1fr; grid-template-rows: auto auto auto; gap: 30px; }
-            .control-tower { flex-direction: row-reverse; }
+        .thinking-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes thinking-bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
         }
     </style>
 </head>
 <body>
     <div id="starfield"></div>
     <div id="nebula"></div>
-    <div id="stardust-stream"></div>
 
-    <main class="main-container">
-        <div class="panel input-panel">
-            <div class="panel-header">
-                <span><i class="fa-solid fa-code"></i> Source</span>
-                <button class="copy-btn" id="copyInputBtn" title="Copy Source Text"><i class="fa-regular fa-copy"></i></button>
-            </div>
-            <div class="textarea-container">
-                <textarea id="inputText" placeholder="Enter text to begin the translation..."></textarea>
-                <div id="input-anim-container"></div>
-            </div>
+    <main class="chat-container">
+        <div id="message-list">
+            <!-- Messages will be added here by JavaScript -->
         </div>
-
-        <div class="control-tower">
-            <button id="translateBtn" title="Translate"><i class="fa-solid fa-atom"></i></button>
-            <select id="targetLanguage"></select>
-        </div>
-
-        <div class="panel output-panel">
-            <div class="panel-header">
-                <span><i class="fa-solid fa-earth-americas"></i> Translation</span>
-                <button class="copy-btn" id="copyOutputBtn" title="Copy Translation"><i class="fa-regular fa-copy"></i></button>
-            </div>
-            <div class="textarea-container">
-                <div id="outputText"></div>
-            </div>
-        </div>
+        <form id="chat-form">
+            <input type="text" id="userInput" placeholder="e.g., Translate 'Hello world' to Spanish" autocomplete="off">
+            <button type="submit" id="sendBtn" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
+        </form>
     </main>
 
     <script type="module">
@@ -228,19 +212,19 @@
         // ######################################################################
         // #  IMPORTANT: PASTE YOUR GOOGLE AI API KEY IN THE LINE BELOW         #
         // ######################################################################
-        const API_KEY = "AIzaSyBs_J7aBylpQ0asbPFMOe2Wyf4IiXysfA0";
+        const API_KEY = "AIzaSyC6ebA_B4zbmJsMjcKiteWUHlEkIU-1SeE";
 
         const elements = {
-            translateBtn: document.getElementById('translateBtn'),
-            inputText: document.getElementById('inputText'),
-            outputText: document.getElementById('outputText'),
-            targetLanguage: document.getElementById('targetLanguage'),
+            messageList: document.getElementById('message-list'),
+            chatForm: document.getElementById('chat-form'),
+            userInput: document.getElementById('userInput'),
+            sendBtn: document.getElementById('sendBtn'),
             starfield: document.getElementById('starfield'),
         };
 
         // --- Setup ---
         // Starfield Background
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 150; i++) {
             const star = document.createElement('div');
             star.style.position = 'absolute';
             star.style.background = 'white';
@@ -250,123 +234,120 @@
             star.style.borderRadius = '50%';
             star.style.top = `${Math.random() * 100}%`;
             star.style.left = `${Math.random() * 100}%`;
+            const duration = Math.random() * 5 + 5;
+            star.style.animation = `twinkle ${duration}s infinite alternate`;
+            star.style.opacity = Math.random() * 0.5 + 0.2;
             elements.starfield.appendChild(star);
         }
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `@keyframes twinkle { to { opacity: 1; } }`;
+        document.head.appendChild(styleSheet);
 
-        // Languages Dropdown
-        const languages = {
-            "Arabic": "ar",
-            "Bengali": "bn",
-            "Chinese (Simplified)": "zh-CN",
-            "Dutch": "nl",
-            "English": "en",
-            "French": "fr",
-            "German": "de",
-            "Greek": "el",
-            "Hebrew": "he",
-            "Hindi": "hi",
-            "Indonesian": "id",
-            "Italian": "it",
-            "Japanese": "ja",
-            "Korean": "ko",
-            "Marathi": "mr",
-            "Polish": "pl",
-            "Portuguese": "pt",
-            "Russian": "ru",
-            "Spanish": "es",
-            "Swedish": "sv",
-            "Thai": "th",
-            "Turkish": "tr",
-            "Ukrainian": "uk",
-            "Vietnamese": "vi"
-        };
-        for (const lang in languages) {
-            let option = document.createElement("option");
-            option.value = lang; option.textContent = lang;
-            elements.targetLanguage.appendChild(option);
-        }
-        
+
+        let genAI, model;
+
         if (API_KEY === "YOUR_GOOGLE_AI_API_KEY_HERE") {
-            elements.outputText.innerHTML = `<span style="color: #f85149;">CRITICAL ERROR: Please add your Google AI API Key in the script section to activate the translator.</span>`;
-            elements.translateBtn.disabled = true;
-        }
-
-        const genAI = new GoogleGenerativeAI(API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: "You are a translator chatbot. Your sole function is to translate user text to a specified language. Your response must consist ONLY of the translated text, with no extra comments or explanations. If the user provides anything other than a translation request, reply with: \"I am a translation-only assistant. Please provide text and the target language for translation.\"" });
-        
-        elements.translateBtn.addEventListener('click', handleTranslation);
-
-        function dissolveText() {
-            const text = elements.inputText.value;
-            elements.inputText.style.opacity = 0;
-            elements.outputText.innerHTML = '';
-            
-            const container = document.getElementById('input-anim-container');
-            container.innerHTML = ''; // Clear previous
-            
-            text.split('').forEach(char => {
-                const span = document.createElement('span');
-                span.textContent = char;
-                span.className = 'dissolve-char';
-                span.style.setProperty('--x', `${(Math.random() - 0.5) * 200}px`);
-                span.style.setProperty('--y', `${(Math.random() - 0.5) * 200}px`);
-                span.style.setProperty('--r', `${(Math.random() - 0.5) * 360}deg`);
-                container.appendChild(span);
+            addMessage("CRITICAL ERROR: Please add your Google AI API Key in the script section of this file to activate the translator.", 'bot', { isError: true });
+            elements.sendBtn.disabled = true;
+            elements.userInput.disabled = true;
+        } else {
+            genAI = new GoogleGenerativeAI(API_KEY);
+            // This system instruction is crucial for making it a specialized chatbot
+            model = genAI.getGenerativeModel({ 
+                model: "gemini-1.5-flash",
+                systemInstruction: "You are a translation chatbot named Cosmic Translate. Your sole function is to translate user text to a specified language. The user will provide the text and the target language in a single message. Your response must consist ONLY of the translated text, with no extra comments, greetings, or explanations. If the user provides anything other than a translation request, or if you cannot determine the text and target language from their message, you MUST reply with the exact phrase: \"I am a translation-only assistant. Please provide text to translate and a target language.\""
             });
-            
-            setTimeout(() => {
-                document.querySelectorAll('.dissolve-char').forEach(span => {
-                    span.classList.add('dissolving');
-                });
-            }, 50);
+            addMessage("Welcome to Cosmic Translate! How can I help you with a translation today?", 'bot');
         }
 
-        function typewriterEffect(text) {
-            elements.outputText.innerHTML = '';
+        elements.chatForm.addEventListener('submit', handleSendMessage);
+
+        async function handleSendMessage(event) {
+            event.preventDefault();
+            const userText = elements.userInput.value.trim();
+            if (!userText) return;
+
+            addMessage(userText, 'user');
+            elements.userInput.value = '';
+            elements.sendBtn.disabled = true;
+
+            const thinkingMessageId = `thinking-${Date.now()}`;
+            addMessage(`<div class="thinking-indicator"><span></span><span></span><span></span></div>`, 'bot', { id: thinkingMessageId });
+
+            try {
+                const result = await model.generateContent(userText);
+                const translatedText = result.response.text();
+
+                // Replace thinking indicator with the actual response
+                const thinkingMessage = document.getElementById(thinkingMessageId);
+                if (thinkingMessage) {
+                    thinkingMessage.remove();
+                }
+                addMessage(translatedText, 'bot', { hasCopy: true });
+
+            } catch (error) {
+                console.error("Translation Error:", error);
+                const thinkingMessage = document.getElementById(thinkingMessageId);
+                if (thinkingMessage) {
+                    thinkingMessage.remove();
+                }
+                addMessage("API Error. Please check the browser console and verify your API Key.", 'bot', { isError: true });
+            } finally {
+                elements.sendBtn.disabled = false;
+                elements.userInput.focus();
+            }
+        }
+
+        function addMessage(text, sender, options = {}) {
+            const { id = null, isError = false, hasCopy = false } = options;
+
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message', `${sender}-message`);
+            if (isError) messageElement.classList.add('error');
+            if (id) messageElement.id = id;
+
+            const textContainer = document.createElement('div');
+            textContainer.className = 'message-text';
+
+            if (sender === 'bot' && !id) { // Apply typewriter to final bot messages
+                typewriterEffect(text, textContainer);
+            } else {
+                textContainer.innerHTML = text;
+            }
+            
+            messageElement.appendChild(textContainer);
+
+            if (hasCopy) {
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.title = 'Copy Translation';
+                copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(text);
+                    copyBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                        copyBtn.classList.remove('copied');
+                    }, 1500);
+                });
+                messageElement.appendChild(copyBtn);
+            }
+
+            elements.messageList.appendChild(messageElement);
+            elements.messageList.scrollTop = elements.messageList.scrollHeight;
+        }
+
+        function typewriterEffect(text, container) {
             text.split('').forEach((char, index) => {
                 const span = document.createElement('span');
                 span.textContent = char;
                 span.className = 'typewriter-char';
                 span.style.animationDelay = `${index * 0.02}s`;
-                elements.outputText.appendChild(span);
+                container.appendChild(span);
             });
         }
 
-        async function handleTranslation() {
-            const textToTranslate = elements.inputText.value.trim();
-            if (!textToTranslate) return;
-
-            elements.translateBtn.disabled = true;
-            
-            // Start animations
-            dissolveText();
-            document.getElementById('stardust-stream').classList.add('animate');
-            
-            try {
-                // Wait for part of the animation to play before calling the API
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                const prompt = `Translate to ${elements.targetLanguage.value}: "${textToTranslate}"`;
-                const result = await model.generateContent(prompt);
-                const translatedText = result.response.text();
-                
-                // Wait for the rest of the animation
-                await new Promise(resolve => setTimeout(resolve, 300));
-                typewriterEffect(translatedText);
-
-            } catch (error) {
-                console.error("Translation Error:", error);
-                elements.outputText.innerHTML = `<span style="color: #f85149;">API Error. Check console & API Key validity.</span>`;
-            } finally {
-                // Reset UI after animations are done
-                setTimeout(() => {
-                    elements.translateBtn.disabled = false;
-                    document.getElementById('stardust-stream').classList.remove('animate');
-                    elements.inputText.style.opacity = 1;
-                    document.getElementById('input-anim-container').innerHTML = '';
-                }, 1000 + textToTranslate.length * 20); // Wait for typewriter
-            }
-        }
     </script>
 </body>
 </html>
