@@ -1,358 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cosmic Translate | A Conversational Translation Experience</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cosmic Translate | A Conversational Translation Experience</title>
 
-    <style>
-        :root {
-            --bg-color: #03001C;
-            --panel-bg: rgba(19, 17, 41, 0.5);
-            --border-color: rgba(69, 78, 133, 0.4);
-            --glow-color: #301E67;
-            --accent-color: #5B8FB9;
-            --text-color: #EAEAEA;
-            --text-light: #B6EADA;
-            --text-heading: #C4B0FF;
-            --user-message-bg: #301E67;
-            --bot-message-bg: rgba(19, 17, 41, 0.7);
-            --error-color: #f85149;
-        }
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Poppins:wght@400;500&display=swap"
+    rel="stylesheet" />
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        #starfield, #nebula {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: -1;
-        }
-
-        #nebula {
-            background: radial-gradient(ellipse at 70% 30%, #5B8FB9 0%, transparent 50%),
-                        radial-gradient(ellipse at 30% 70%, #301E67 0%, transparent 50%);
-            animation: nebula-drift 40s alternate infinite;
-            opacity: 0.4;
-        }
-
-        @keyframes nebula-drift {
-            from { transform: rotate(0deg) scale(1.5); }
-            to { transform: rotate(360deg) scale(1.5); }
-        }
-
-        .chat-container {
-            width: 100%;
-            max-width: 800px;
-            height: 85vh;
-            max-height: 900px;
-            display: flex;
-            flex-direction: column;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 0 25px var(--glow-color), inset 0 0 10px rgba(48, 30, 103, 0.5);
-            animation: fadeIn 1s ease-out;
-            overflow: hidden; /* Important for containing children */
-        }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-
-        #message-list {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        /* Custom scrollbar for message list */
-        #message-list::-webkit-scrollbar { width: 6px; }
-        #message-list::-webkit-scrollbar-track { background: transparent; }
-        #message-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-        #message-list::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
-
-        .chat-message {
-            max-width: 75%;
-            padding: 12px 18px;
-            border-radius: 12px;
-            line-height: 1.5;
-            word-wrap: break-word;
-            animation: popIn 0.3s ease-out;
-        }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-
-        .user-message {
-            background-color: var(--user-message-bg);
-            color: var(--text-light);
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-
-        .bot-message {
-            background-color: var(--bot-message-bg);
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-            position: relative;
-        }
-        .bot-message.error { color: var(--error-color); }
-
-        .copy-btn {
-            position: absolute;
-            top: 8px; right: 8px;
-            background: none; border: none;
-            color: var(--text-light);
-            cursor: pointer; font-size: 0.9rem;
-            opacity: 0.4;
-            transition: opacity 0.2s, color 0.2s;
-        }
-        .bot-message:hover .copy-btn { opacity: 1; }
-        .copy-btn:hover { color: white; }
-        .copy-btn.copied { color: #4CAF50; }
-
-        #chat-form {
-            display: flex;
-            gap: 10px;
-            padding: 15px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        #userInput {
-            flex-grow: 1;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 15px;
-            color: var(--text-color);
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        #userInput:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 10px var(--accent-color);
-        }
-        #userInput::placeholder { color: rgba(234, 234, 234, 0.5); }
-
-        #sendBtn {
-            flex-shrink: 0;
-            width: 50px;
-            border-radius: 8px;
-            border: 1px solid var(--accent-color);
-            background: var(--glow-color);
-            color: white; font-size: 1.2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex; justify-content: center; align-items: center;
-        }
-        #sendBtn:hover:not(:disabled) { background: var(--accent-color); box-shadow: 0 0 15px var(--accent-color); }
-        #sendBtn:disabled { cursor: not-allowed; background: #222; box-shadow: none; color: #555; border-color: #555; }
-
-        .typewriter-char {
-            opacity: 0;
-            animation: char-fade-in 0.05s forwards;
-        }
-        @keyframes char-fade-in { to { opacity: 1; } }
-
-        .thinking-indicator span {
-            display: inline-block;
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--text-light);
-            margin: 0 2px;
-            animation: thinking-bounce 1.4s infinite ease-in-out both;
-        }
-        .thinking-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .thinking-indicator span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes thinking-bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
-        }
-    </style>
+  <style>
+    /* ...STYLES... */
+  </style>
 </head>
+
 <body>
-    <div id="starfield"></div>
-    <div id="nebula"></div>
+  <div id="starfield"></div>
+  <div id="nebula"></div>
 
-    <main class="chat-container">
-        <div id="message-list">
-            <!-- Messages will be added here by JavaScript -->
-        </div>
-        <form id="chat-form">
-            <input type="text" id="userInput" placeholder="e.g., Translate 'Hello world' to Spanish" autocomplete="off">
-            <button type="submit" id="sendBtn" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
-        </form>
-    </main>
+  <main class="chat-container">
+    <div id="message-list"></div>
+    <form id="chat-form">
+      <input type="text" id="userInput" placeholder="e.g., Translate 'Hello world' to Spanish" autocomplete="off" />
+      <button type="submit" id="sendBtn" title="Send">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </form>
+  </main>
 
-    <script type="module">
-        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+  <script type="module">
+    const elements = {
+      messageList: document.getElementById('message-list'),
+      chatForm: document.getElementById('chat-form'),
+      userInput: document.getElementById('userInput'),
+      sendBtn: document.getElementById('sendBtn'),
+      starfield: document.getElementById('starfield'),
+    };
 
-        // ######################################################################
-        // #  IMPORTANT: PASTE YOUR GOOGLE AI API KEY IN THE LINE BELOW         #
-        // ######################################################################
+    // --- Setup --- Starfield Background
+    for (let i = 0; i < 150; i++) {
+      const star = document.createElement('div');
+      star.style.position = 'absolute';
+      star.style.background = 'white';
+      const size = Math.random() * 2 + 1;
+      star.style.width = `${size}px`;
+      star.style.height = `${size}px`;
+      star.style.borderRadius = '50%';
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.left = `${Math.random() * 100}%`;
+      const duration = Math.random() * 5 + 5;
+      star.style.animation = `twinkle ${duration}s infinite alternate`;
+      star.style.opacity = Math.random() * 0.5 + 0.2;
+      elements.starfield.appendChild(star);
+    }
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = `@keyframes twinkle { to { opacity: 1; } }`;
+    document.head.appendChild(styleSheet);
 
-        const elements = {
-            messageList: document.getElementById('message-list'),
-            chatForm: document.getElementById('chat-form'),
-            userInput: document.getElementById('userInput'),
-            sendBtn: document.getElementById('sendBtn'),
-            starfield: document.getElementById('starfield'),
-        };
+    // Greet the user
+    addMessage("Welcome to Cosmic Translate! How can I help you with a translation today?", 'bot');
 
-        // --- Setup ---
-        // Starfield Background
-        for (let i = 0; i < 150; i++) {
-            const star = document.createElement('div');
-            star.style.position = 'absolute';
-            star.style.background = 'white';
-            const size = Math.random() * 2 + 1;
-            star.style.width = `${size}px`;
-            star.style.height = `${size}px`;
-            star.style.borderRadius = '50%';
-            star.style.top = `${Math.random() * 100}%`;
-            star.style.left = `${Math.random() * 100}%`;
-            const duration = Math.random() * 5 + 5;
-            star.style.animation = `twinkle ${duration}s infinite alternate`;
-            star.style.opacity = Math.random() * 0.5 + 0.2;
-            elements.starfield.appendChild(star);
-        }
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = `@keyframes twinkle { to { opacity: 1; } }`;
-        document.head.appendChild(styleSheet);
+    elements.chatForm.addEventListener('submit', handleSendMessage);
 
+    async function handleSendMessage(event) {
+      event.preventDefault();
+      const userText = elements.userInput.value.trim();
+      if (!userText) return;
 
-        let genAI, model;
+      addMessage(userText, 'user');
+      elements.userInput.value = '';
+      elements.sendBtn.disabled = true;
 
-        if (API_KEY === "YOUR_GOOGLE_AI_API_KEY_HERE") {
-            addMessage("CRITICAL ERROR: Please add your Google AI API Key in the script section of this file to activate the translator.", 'bot', { isError: true });
-            elements.sendBtn.disabled = true;
-            elements.userInput.disabled = true;
-        } else {
-            genAI = new GoogleGenerativeAI(API_KEY);
-            // This system instruction is crucial for making it a specialized chatbot
-            model = genAI.getGenerativeModel({ 
-                model: "gemini-1.5-flash",
-                systemInstruction: "You are a translation chatbot named Cosmic Translate. Your sole function is to translate user text to a specified language. The user will provide the text and the target language in a single message. Your response must consist ONLY of the translated text, with no extra comments, greetings, or explanations. If the user provides anything other than a translation request, or if you cannot determine the text and target language from their message, you MUST reply with the exact phrase: \"I am a translation-only assistant. Please provide text to translate and a target language.\""
-            });
-            addMessage("Welcome to Cosmic Translate! How can I help you with a translation today?", 'bot');
-        }
+      const thinkingMessageId = `thinking-${Date.now()}`;
+      addMessage(`<div class="thinking-indicator"><span></span><span></span><span></span></div>`, 'bot', { id: thinkingMessageId });
 
-        elements.chatForm.addEventListener('submit', handleSendMessage);
+      try {
+        const response = await fetch("/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: userText })
+        });
 
-        async function handleSendMessage(event) {
-            event.preventDefault();
-            const userText = elements.userInput.value.trim();
-            if (!userText) return;
+        const data = await response.json();
+        const translatedText = data.translated;
 
-            addMessage(userText, 'user');
-            elements.userInput.value = '';
-            elements.sendBtn.disabled = true;
+        const thinkingMessage = document.getElementById(thinkingMessageId);
+        if (thinkingMessage) thinkingMessage.remove();
 
-            const thinkingMessageId = `thinking-${Date.now()}`;
-            addMessage(`<div class="thinking-indicator"><span></span><span></span><span></span></div>`, 'bot', { id: thinkingMessageId });
+        addMessage(translatedText, 'bot', { hasCopy: true });
 
-            try {
-                const response = await fetch("/translate", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ prompt: userText })
-});
-const data = await response.json();
-const translatedText = data.translated;
+      } catch (error) {
+        console.error("Translation Error:", error);
+        const thinkingMessage = document.getElementById(thinkingMessageId);
+        if (thinkingMessage) thinkingMessage.remove();
 
+        addMessage("API Error. Please check the browser console and verify your API setup.", 'bot', { isError: true });
 
-                // Replace thinking indicator with the actual response
-                const thinkingMessage = document.getElementById(thinkingMessageId);
-                if (thinkingMessage) {
-                    thinkingMessage.remove();
-                }
-                addMessage(translatedText, 'bot', { hasCopy: true });
+      } finally {
+        elements.sendBtn.disabled = false;
+        elements.userInput.focus();
+      }
+    }
 
-            } catch (error) {
-                console.error("Translation Error:", error);
-                const thinkingMessage = document.getElementById(thinkingMessageId);
-                if (thinkingMessage) {
-                    thinkingMessage.remove();
-                }
-                addMessage("API Error. Please check the browser console and verify your API Key.", 'bot', { isError: true });
-            } finally {
-                elements.sendBtn.disabled = false;
-                elements.userInput.focus();
-            }
-        }
+    function addMessage(text, sender, options = {}) {
+      const { id = null, isError = false, hasCopy = false } = options;
 
-        function addMessage(text, sender, options = {}) {
-            const { id = null, isError = false, hasCopy = false } = options;
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('chat-message', `${sender}-message`);
+      if (isError) messageElement.classList.add('error');
+      if (id) messageElement.id = id;
 
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('chat-message', `${sender}-message`);
-            if (isError) messageElement.classList.add('error');
-            if (id) messageElement.id = id;
+      const textContainer = document.createElement('div');
+      textContainer.className = 'message-text';
 
-            const textContainer = document.createElement('div');
-            textContainer.className = 'message-text';
+      if (sender === 'bot' && !id) {
+        typewriterEffect(text, textContainer);
+      } else {
+        textContainer.innerHTML = text;
+      }
 
-            if (sender === 'bot' && !id) { // Apply typewriter to final bot messages
-                typewriterEffect(text, textContainer);
-            } else {
-                textContainer.innerHTML = text;
-            }
-            
-            messageElement.appendChild(textContainer);
+      messageElement.appendChild(textContainer);
 
-            if (hasCopy) {
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'copy-btn';
-                copyBtn.title = 'Copy Translation';
-                copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-                copyBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(text);
-                    copyBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
-                    copyBtn.classList.add('copied');
-                    setTimeout(() => {
-                        copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-                        copyBtn.classList.remove('copied');
-                    }, 1500);
-                });
-                messageElement.appendChild(copyBtn);
-            }
+      if (hasCopy) {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.title = 'Copy Translation';
+        copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+        copyBtn.addEventListener('click', () => {
+          navigator.clipboard.writeText(text);
+          copyBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+            copyBtn.classList.remove('copied');
+          }, 1500);
+        });
+        messageElement.appendChild(copyBtn);
+      }
 
-            elements.messageList.appendChild(messageElement);
-            elements.messageList.scrollTop = elements.messageList.scrollHeight;
-        }
+      elements.messageList.appendChild(messageElement);
+      elements.messageList.scrollTop = elements.messageList.scrollHeight;
+    }
 
-        function typewriterEffect(text, container) {
-            text.split('').forEach((char, index) => {
-                const span = document.createElement('span');
-                span.textContent = char;
-                span.className = 'typewriter-char';
-                span.style.animationDelay = `${index * 0.02}s`;
-                container.appendChild(span);
-            });
-        }
-
-    </script>
+    function typewriterEffect(text, container) {
+      text.split('').forEach((char, index) => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        span.className = 'typewriter-char';
+        span.style.animationDelay = `${index * 0.02}s`;
+        container.appendChild(span);
+      });
+    }
+  </script>
 </body>
+
 </html>
