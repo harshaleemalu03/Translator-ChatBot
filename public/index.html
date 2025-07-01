@@ -25,7 +25,7 @@
             --text-heading: #C4B0FF;
             --user-message-bg: #301E67;
             --bot-message-bg: rgba(19, 17, 41, 0.7);
-            --error-color: #f85149;
+            --error-color: #f87171; /* Brighter red for better visibility */
         }
 
         * {
@@ -89,7 +89,6 @@
             box-shadow: 0 0 25px var(--glow-color), inset 0 0 10px rgba(48, 30, 103, 0.5);
             animation: fadeIn 1s ease-out;
             overflow: hidden;
-            /* Important for containing children */
         }
 
         @keyframes fadeIn {
@@ -113,7 +112,6 @@
             gap: 15px;
         }
 
-        /* Custom scrollbar for message list */
         #message-list::-webkit-scrollbar {
             width: 6px;
         }
@@ -138,6 +136,15 @@
             line-height: 1.5;
             word-wrap: break-word;
             animation: popIn 0.3s ease-out;
+            display: flex; /* For icon alignment */
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .chat-message .icon {
+            flex-shrink: 0;
+            padding-top: 2px;
+            opacity: 0.8;
         }
 
         @keyframes popIn {
@@ -167,6 +174,8 @@
         }
 
         .bot-message.error {
+            background-color: rgba(127, 29, 29, 0.5); /* Error background */
+            border: 1px solid rgba(248, 113, 113, 0.4);
             color: var(--error-color);
         }
 
@@ -310,7 +319,6 @@
     </main>
 
     <script type="module">
-
         const elements = {
             messageList: document.getElementById('message-list'),
             chatForm: document.getElementById('chat-form'),
@@ -321,26 +329,40 @@
 
         // --- Setup ---
         // Starfield Background
-        for (let i = 0; i < 150; i++) {
-            const star = document.createElement('div');
-            star.style.position = 'absolute';
-            star.style.background = 'white';
-            const size = Math.random() * 2 + 1;
-            star.style.width = `${size}px`;
-            star.style.height = ${size}px;
-            star.style.borderRadius = '50%';
-            star.style.top = ${Math.random() * 100}%;
-            star.style.left = `${Math.random() * 100}%`;
-            const duration = Math.random() * 5 + 5;
-            star.style.animation = twinkle ${duration}s infinite alternate;
-            star.style.opacity = Math.random() * 0.5 + 0.2;
-            elements.starfield.appendChild(star);
+        function createStarfield() {
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement('div');
+                star.style.position = 'absolute';
+                star.style.background = 'white';
+                const size = Math.random() * 2 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.borderRadius = '50%';
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                const duration = Math.random() * 5 + 5;
+                star.style.animation = `twinkle ${duration}s infinite alternate`;
+                star.style.opacity = Math.random() * 0.5 + 0.2;
+                elements.starfield.appendChild(star);
+            }
+            const styleSheet = document.createElement("style");
+            styleSheet.innerText = `@keyframes twinkle { to { opacity: 1; } }`;
+            document.head.appendChild(styleSheet);
         }
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = `@keyframes twinkle { to { opacity: 1; } }`;
-        document.head.appendChild(styleSheet);
 
+        // --- Initial Welcome Message ---
+        function displayWelcomeMessage() {
+            const welcomeText = "Welcome to Cosmic Translate! ✨<br>I can translate languages from across the galaxy. Just tell me what to translate. For example: <strong>Translate 'The universe is beautiful' to Japanese.</strong>";
+            addMessage(welcomeText, 'bot', { useTypewriter: true });
+        }
+
+        // --- Event Listeners ---
         elements.chatForm.addEventListener('submit', handleSendMessage);
+        document.addEventListener('DOMContentLoaded', () => {
+            createStarfield();
+            displayWelcomeMessage();
+            elements.userInput.focus();
+        });
 
         async function handleSendMessage(event) {
             event.preventDefault();
@@ -352,7 +374,7 @@
             elements.sendBtn.disabled = true;
 
             const thinkingMessageId = `thinking-${Date.now()}`;
-            addMessage(<div class="thinking-indicator"><span></span><span></span><span></span></div>, 'bot', { id: thinkingMessageId });
+            addMessage(`<div class="thinking-indicator"><span></span><span></span><span></span></div>`, 'bot', { id: thinkingMessageId });
 
             try {
                 const response = await fetch("/translate", {
@@ -360,24 +382,33 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ prompt: userText })
                 });
-                const data = await response.json();
-                const translatedText = data.translated;
 
-
-                // Replace thinking indicator with the actual response
+                // Remove thinking indicator once response is received
                 const thinkingMessage = document.getElementById(thinkingMessageId);
-                if (thinkingMessage) {
-                    thinkingMessage.remove();
+                if (thinkingMessage) thinkingMessage.remove();
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.statusText}`);
                 }
-                addMessage(translatedText, 'bot', { hasCopy: true });
+
+                const data = await response.json();
+                
+                // Handle both successful translations and specific errors from the backend
+                if (data.translated) {
+                    addMessage(data.translated, 'bot', { hasCopy: true, useTypewriter: true });
+                } else if (data.error) {
+                    // This will display refusals like "I only translate" or API key errors
+                    addMessage(data.error, 'bot', { isError: true, useTypewriter: true });
+                } else {
+                    // Fallback for unexpected response structure
+                    addMessage("Sorry, I received an unexpected response. Please try again.", 'bot', { isError: true });
+                }
 
             } catch (error) {
-                console.error("Translation Error:", error);
+                console.error("Translation Fetch Error:", error);
                 const thinkingMessage = document.getElementById(thinkingMessageId);
-                if (thinkingMessage) {
-                    thinkingMessage.remove();
-                }
-                addMessage("API Error. Please check the browser console and verify your API Key.", 'bot', { isError: true });
+                if (thinkingMessage) thinkingMessage.remove();
+                addMessage("Connection error. Could not reach the translation service. Please check your network and try again.", 'bot', { isError: true });
             } finally {
                 elements.sendBtn.disabled = false;
                 elements.userInput.focus();
@@ -385,31 +416,43 @@
         }
 
         function addMessage(text, sender, options = {}) {
-            const { id = null, isError = false, hasCopy = false } = options;
+            const { id = null, isError = false, hasCopy = false, useTypewriter = false } = options;
 
             const messageElement = document.createElement('div');
             messageElement.classList.add('chat-message', `${sender}-message`);
             if (isError) messageElement.classList.add('error');
             if (id) messageElement.id = id;
 
-            const textContainer = document.createElement('div');
-            textContainer.className = 'message-text';
+            // Add icon based on sender
+            const icon = document.createElement('div');
+            icon.className = 'icon';
+            if (sender === 'bot') {
+                 icon.innerHTML = isError ? '<i class="fa-solid fa-triangle-exclamation"></i>' : '<i class="fa-solid fa-robot"></i>';
+            } else {
+                 icon.innerHTML = '<i class="fa-solid fa-user-astronaut"></i>';
+            }
+            messageElement.appendChild(icon);
 
-            if (sender === 'bot' && !id) { // Apply typewriter to final bot messages
+            const textContainer = document.createElement('div');
+
+            if (sender === 'bot' && useTypewriter && !id) { // Apply typewriter to final bot messages
                 typewriterEffect(text, textContainer);
             } else {
-                textContainer.innerHTML = text;
+                textContainer.innerHTML = text; // Use innerHTML to render strong tags, etc.
             }
-
             messageElement.appendChild(textContainer);
-
-            if (hasCopy) {
+            
+            if (hasCopy && !isError) {
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'copy-btn';
                 copyBtn.title = 'Copy Translation';
                 copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
                 copyBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(text);
+                    // To copy text that might contain HTML, we create a temporary element
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = text;
+                    navigator.clipboard.writeText(tempDiv.textContent || tempDiv.innerText);
+                    
                     copyBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
                     copyBtn.classList.add('copied');
                     setTimeout(() => {
@@ -424,17 +467,64 @@
             elements.messageList.scrollTop = elements.messageList.scrollHeight;
         }
 
-        function typewriterEffect(text, container) {
-            text.split('').forEach((char, index) => {
-                const span = document.createElement('span');
-                span.textContent = char;
-                span.className = 'typewriter-char';
-                span.style.animationDelay = `${index * 0.02}s`;
-                container.appendChild(span);
+        function typewriterEffect(htmlText, container) {
+            // Create a temporary div to parse the HTML and extract text and structure
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlText;
+
+            let charIndex = 0;
+            const allNodes = Array.from(tempDiv.childNodes);
+
+            function typeNode(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent;
+                    text.split('').forEach((char) => {
+                        const span = document.createElement('span');
+                        span.textContent = char;
+                        span.className = 'typewriter-char';
+                        span.style.animationDelay = `${charIndex * 0.02}s`;
+                        container.appendChild(span);
+                        charIndex++;
+                    });
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const newElement = document.createElement(node.nodeName);
+                    // Copy attributes if any
+                    for (let i = 0; i < node.attributes.length; i++) {
+                        newElement.setAttribute(node.attributes[i].name, node.attributes[i].value);
+                    }
+                    container.appendChild(newElement);
+                    Array.from(node.childNodes).forEach(childNode => {
+                        // Recursively call on a temporary container for the new element
+                        const subContainer = newElement;
+                        // This simplified version just appends nodes. A more complex one would be needed for deep nesting.
+                        if (childNode.nodeType === Node.TEXT_NODE) {
+                           typewriterEffect(childNode.textContent, subContainer);
+                        } else {
+                           subContainer.appendChild(childNode.cloneNode(true));
+                        }
+                    });
+                }
+            }
+
+            // A simplified typewriter that handles basic HTML like <strong> and <br>
+            container.innerHTML = '';
+            htmlText.split(/(<[^>]*>)/g).forEach(part => {
+                if (part.startsWith('<')) {
+                    // It's a tag, just append it
+                    container.innerHTML += part;
+                } else {
+                    // It's text, apply typewriter
+                    part.split('').forEach((char, index) => {
+                        const span = document.createElement('span');
+                        span.textContent = char;
+                        span.className = 'typewriter-char';
+                        span.style.animationDelay = `${(charIndex + index) * 0.02}s`;
+                        container.appendChild(span);
+                    });
+                    charIndex += part.length;
+                }
             });
         }
-
     </script>
 </body>
-
 </html>
