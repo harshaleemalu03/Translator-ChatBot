@@ -45,10 +45,8 @@ const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-// Use the built-in express.json() instead of the deprecated body-parser
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
 
 // --- API ENDPOINT ---
 app.post('/translate', async (req, res) => {
@@ -59,23 +57,32 @@ app.post('/translate', async (req, res) => {
     return res.status(400).json({ translated: "❗ Please enter text to translate." });
   }
 
-  // 2. The server-side keyword filter is removed. 
-  // The strong `systemInstruction` given to the model is much more reliable
-  // for enforcing the "translation-only" rule.
+  // 1.5 Translation Intent Check
+  const lowerPrompt = prompt.toLowerCase();
+  const looksLikeTranslation =
+    lowerPrompt.includes("translate") ||
+    lowerPrompt.includes(" to ") ||
+    lowerPrompt.includes(" in ") ||
+    lowerPrompt.includes("language");
+
+  if (!looksLikeTranslation) {
+    return res.status(400).json({
+      translated: "I am a translation-only assistant. Please provide text and the target language for translation."
+    });
+  }
 
   try {
-    // 3. Use the more direct `generateContent` for single-turn requests.
-    // We re-use the `model` instance created when the server started.
+    // 2. Use the more direct `generateContent` for single-turn requests.
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    // Send the clean, trimmed text back to the client
+    // 3. Send the clean, trimmed text back to the client
     res.json({ translated: text.trim() });
 
   } catch (error) {
     // 4. Enhanced Error Logging for better debugging on the server
-    console.error("❌ API Call Failed:", error); 
+    console.error("❌ API Call Failed:", error);
     res.status(500).json({ translated: "⚠️ An error occurred with the translation service. Please try again later." });
   }
 });
